@@ -11,8 +11,8 @@
 
 int checkID(void);
 int BMP280_config(void);
-void BMP_etallonage(void);
-int BMP_get_temp(void);
-int BMP_get_pres(void);
+void BMP280_etalonnage(void);
+int BMP280_get_temp(void);
+int BMP280_get_pres(void);
 
 #endif /* INC_DRIVER_H_ */

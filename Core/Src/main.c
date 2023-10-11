@@ -102,7 +102,7 @@ int main(void)
 	if(BMP280_config()==0){
 		printf("Configuration réussie\r\n");
 	}
-	BMP_etallonage();
+	BMP280_etalonnage();
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -110,8 +110,8 @@ int main(void)
 	while (1)
 	{
 		//printf("ALED\n\r");
-		nc_temp = BMP_get_temp();
-		nc_pres = BMP_get_pres();
+		nc_temp = BMP280_get_temp();
+		nc_pres = BMP280_get_pres();
 		printf("Température non compensée = %x\r\n",nc_temp);
 		printf("Pression non compensée = %x\r\n",nc_pres);
 		HAL_Delay(500);
