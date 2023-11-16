@@ -47,6 +47,7 @@
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
 extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart1;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -63,24 +64,24 @@ extern UART_HandleTypeDef huart2;
 
 /* USER CODE END 0 */
 /**
- * Initializes the Global MSP.
- */
+  * Initializes the Global MSP.
+  */
 void HAL_MspInit(void)
 {
-	/* USER CODE BEGIN MspInit 0 */
+  /* USER CODE BEGIN MspInit 0 */
 
-	/* USER CODE END MspInit 0 */
+  /* USER CODE END MspInit 0 */
 
-	__HAL_RCC_SYSCFG_CLK_ENABLE();
-	__HAL_RCC_PWR_CLK_ENABLE();
+  __HAL_RCC_SYSCFG_CLK_ENABLE();
+  __HAL_RCC_PWR_CLK_ENABLE();
 
-	HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_0);
+  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_0);
 
-	/* System interrupt init*/
+  /* System interrupt init*/
 
-	/* USER CODE BEGIN MspInit 1 */
+  /* USER CODE BEGIN MspInit 1 */
 
-	/* USER CODE END MspInit 1 */
+  /* USER CODE END MspInit 1 */
 }
 
 /* USER CODE BEGIN 1 */
@@ -94,7 +95,7 @@ PUTCHAR_PROTOTYPE
 	/* Place your implementation of fputc here */
 	/* e.g. write a character to the USART2 and Loop until the end of transmission */
 	HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF);
-
+	HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF);
 	return ch;
 }
 /* USER CODE END 1 */

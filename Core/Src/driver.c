@@ -7,9 +7,11 @@
 #include "driver.h"
 #include "main.h"
 #include "stdio.h"
+#include <string.h>
+#include <stdlib.h>
 
 extern I2C_HandleTypeDef hi2c1;
-
+extern uint32_t coef;
 HAL_StatusTypeDef retour; //Permet de verifier si les fonctions I2C s'exécutent correctement
 
 uint8_t BMP280_address = 0x77<<1; //Adresse I2C du capteur BMP280
@@ -21,10 +23,14 @@ uint8_t pres_add = 0xF7;		  //Adresse du registre contenant la pression
 
 uint8_t config = (0b010<<5)|(0b101<<2)|(0b11); //Octet de configuration
 
-typedef int32_t BMP280_S32_t; //typedef pour la correction des valeurs de température et de pression
-typedef uint32_t BMP280_U32_t;
-typedef uint64_t BMP280_U64_t;
-typedef int64_t BMP280_S64_t;
+extern UART_HandleTypeDef huart1;
+uint8_t RxBuff[RX_BUFF_SIZE]={0};
+int setK=0;
+
+extern int32_t nc_temp;
+extern int32_t nc_pres;
+extern int32_t temp;
+extern uint32_t pres;
 
 short dig_T1 = 0;
 signed short dig_T2 = 0;
@@ -168,4 +174,44 @@ BMP280_U32_t bmp280_compensate_P_int64(BMP280_S32_t adc_P)
 	var1 = (((BMP280_S64_t)dig_P9) * (p>>13) * (p>>13)) >> 25;
 	var2 = (((BMP280_S64_t)dig_P8) * p) >> 19; p = ((p + var1 + var2) >> 8) + (((BMP280_S64_t)dig_P7)<<4);
 	return (BMP280_U32_t)p;
+}
+
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+	if(strcmp(RxBuff,"GET_T")==0){
+		//printf("\r\nGET_T\r\n");
+		nc_temp = BMP280_get_temp();
+		temp=bmp280_compensate_T_int32(nc_temp);
+		printf("T=%ld%ld.%ld%ld_C\r\n",(temp/1000)%10,(temp/100)%10,(temp/10)%10,temp%10);
+	}
+	else if(strcmp(RxBuff,"GET_P")==0){
+		//printf("\r\nGET_P\r\n");
+		nc_pres = BMP280_get_pres();
+		pres=bmp280_compensate_P_int64(nc_pres);
+		printf("P=%f_Pa\r\n",((float)(pres))/256);
+	}
+	else if(strcmp(RxBuff,"SET_K")==0){
+		setK=1;
+	}
+	else if(setK==1){
+		setK=0;
+		//printf("\r\nSET_K=OK\r\n");
+		//coef=atoi(RxBuff);
+		coef=atoi(RxBuff);
+		printf("%d\r\n",atoi(RxBuff));
+		//printf("%d\r\n",coef);
+
+	}
+	else if(strcmp(RxBuff,"GET_K")==0){
+		//printf("\r\nGET_K\r\n");
+		printf("K=%d\r\n",coef);
+	}
+	else if(strcmp(RxBuff,"GET_A")==0){
+		//printf("\r\nGET_A\r\n");
+	}
+	else{
+		printf("\r\nCommande inconnue\r\n");
+	}
+	HAL_UART_Receive_IT(&huart1, RxBuff, RX_BUFF_SIZE);
 }

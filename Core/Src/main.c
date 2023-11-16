@@ -27,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include "driver.h"
+#include <math.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,8 +48,18 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-int nc_temp=0;
-int nc_pres=0;
+int32_t nc_temp=0;
+int32_t nc_pres=0;
+int32_t temp=0;
+int32_t old_temp=0;
+uint32_t pres=0;
+extern uint8_t RxBuff[RX_BUFF_SIZE];
+CAN_TxHeaderTypeDef pHeader;
+uint8_t aData[2]={0x20,0x01};
+uint32_t pTxMailbox;
+uint32_t coef = 3;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -95,6 +106,17 @@ int main(void)
 	MX_I2C1_Init();
 	MX_USART1_UART_Init();
 	/* USER CODE BEGIN 2 */
+
+	HAL_CAN_Start(&hcan1);
+
+	pHeader.StdId=0x61;
+	//pHeader->ExtId=0x61;
+	pHeader.IDE=CAN_ID_STD;
+	pHeader.RTR=CAN_RTR_DATA;
+	pHeader.DLC=2;
+	pHeader.TransmitGlobalTime=DISABLE;
+
+
 	if(checkID()==0){
 		printf("Connection réussie\r\n");
 	}
@@ -103,18 +125,62 @@ int main(void)
 		printf("Configuration réussie\r\n");
 	}
 	BMP280_etalonnage();
+
+	//HAL_Delay(1000);
+	HAL_UART_Receive_IT(&huart1, RxBuff,RX_BUFF_SIZE);
+
+	//HAL_CAN_AddTxMessage(&hcan1, pHeader, aData, pTxMailbox);
+
+	nc_temp = BMP280_get_temp();
+	temp=bmp280_compensate_T_int32(nc_temp);
+	old_temp=temp;
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		//printf("ALED\n\r");
+		//aData[1]=0x01;
+		//HAL_CAN_AddTxMessage(&hcan1, &pHeader, aData, &pTxMailbox);
+
+		//printf("%lu\r\n",(long unsigned)HAL_CAN_IsTxMessagePending(&hcan1, pTxMailbox));
+		//HAL_Delay(2000);
+		//aData[1]=0x00;
+		//HAL_CAN_AddTxMessage(&hcan1, &pHeader, aData, &pTxMailbox);
+		//HAL_Delay(2000);
+
 		nc_temp = BMP280_get_temp();
-		nc_pres = BMP280_get_pres();
-		printf("Température non compensée = %x\r\n",nc_temp);
-		printf("Pression non compensée = %x\r\n",nc_pres);
-		HAL_Delay(500);
+		temp=bmp280_compensate_T_int32(nc_temp);
+		//printf("T=%d%d.%d%d_C\r\n",(temp/1000)%10,(temp/100)%10,(temp/10)%10,temp%10);
+		if(fabs(temp-old_temp)>40){
+
+			if(temp>old_temp){//On bouge dans le sens 0x00 +
+				aData[1]=0x00;
+				aData[0]=(int)((temp-old_temp)/coef);
+				HAL_CAN_AddTxMessage(&hcan1, &pHeader, aData, &pTxMailbox);
+				//printf("adata0= %d\r\n",aData[0]);
+				old_temp=temp;
+			}
+			else{//On bouge dans le sens 0x01 -
+				aData[1]=0x01;
+				aData[0]=(int)((old_temp-temp)/coef);
+				HAL_CAN_AddTxMessage(&hcan1, &pHeader, aData, &pTxMailbox);
+				//printf("adata0= %d\r\n",aData[0]);
+				old_temp=temp;
+			}
+		}
+		HAL_Delay(2000);
+
+		//		        printf("ALED\r\n");
+		//				nc_temp = BMP280_get_temp();
+		//				nc_pres = BMP280_get_pres();
+		//				temp=bmp280_compensate_T_int32(nc_temp);
+		//				pres=bmp280_compensate_P_int64(nc_pres);
+		//				printf("Température non compensée = %x\r\n",nc_temp);
+		//				printf("Pression non compensée = %x\r\n",nc_pres);
+		//				printf("Température compensée = %x\r\n",temp);
+		//				printf("Pression compensée = %x\r\n",pres);
+		//		        HAL_Delay(500);
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
